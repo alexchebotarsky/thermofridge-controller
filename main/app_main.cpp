@@ -87,20 +87,19 @@ extern "C" void app_main(void) {
     }
   });
 
-  mqtt.subscribe(
-      MQTT_TARGET_STATE_TOPIC, [](const char* message, const int length) {
-        esp_err_t err = storage.populate_from_json(message);
-        if (err != ESP_OK) {
-          printf("Error populating storage from JSON message '%s': %s\n",
-                 message, esp_err_to_name(err));
-          return;
-        }
+  mqtt.subscribe(MQTT_TARGET_STATE_TOPIC, [](const char* message) {
+    esp_err_t err = storage.populate_from_json(message);
+    if (err != ESP_OK) {
+      printf("Error populating storage from JSON message '%s': %s\n", message,
+             esp_err_to_name(err));
+      return;
+    }
 
-        Mode mode = storage.get_mode();
-        int target_temperature = storage.get_target_temperature();
-        printf("Set target state: mode=%s, target_temperature=%d\n",
-               mode_to_str(mode), target_temperature);
-      });
+    Mode mode = storage.get_mode();
+    int target_temperature = storage.get_target_temperature();
+    printf("Set target state: mode=%s, target_temperature=%d\n",
+           mode_to_str(mode), target_temperature);
+  });
 
   OperatingState operating_state = OperatingState::IDLE;
   TickType_t last_check = 0;
