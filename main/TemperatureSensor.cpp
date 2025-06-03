@@ -1,6 +1,6 @@
 #include "TemperatureSensor.hpp"
 
-#include <ds18x20.h>
+#include "ds18x20.h"
 
 constexpr char MAX_SENSORS = 1;
 
@@ -8,7 +8,12 @@ TemperatureSensor::TemperatureSensor(const int gpio_pin)
     : gpio(static_cast<gpio_num_t>(gpio_pin)), sensor_addr(0) {}
 
 esp_err_t TemperatureSensor::init() {
-  esp_err_t err = gpio_set_pull_mode(gpio, GPIO_PULLUP_ONLY);
+  gpio_config_t config = {};
+  config.mode = GPIO_MODE_INPUT;
+  config.pull_up_en = GPIO_PULLUP_ENABLE;
+  config.pin_bit_mask = 1ULL << gpio;
+
+  esp_err_t err = gpio_config(&config);
   if (err != ESP_OK) {
     return err;
   }
