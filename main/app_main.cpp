@@ -1,5 +1,6 @@
 #include <stdio.h>
 
+#include "LoopManager.hpp"
 #include "MQTTManager.hpp"
 #include "Mode.hpp"
 #include "OperatingState.hpp"
@@ -12,9 +13,6 @@
 #include "nvs_flash.h"
 #include "sdkconfig.h"
 
-constexpr const int TEMPERATURE_CHECK_INTERVAL_MS =
-    CONFIG_TEMPERATURE_CHECK_INTERVAL_MS;
-
 // MQTT topics
 constexpr const char* MQTT_CURRENT_STATE_TOPIC =
     CONFIG_MQTT_CURRENT_STATE_TOPIC;
@@ -24,6 +22,8 @@ WiFiManager wifi(CONFIG_WIFI_SSID, CONFIG_WIFI_PASSWORD);
 MQTTManager mqtt(CONFIG_MQTT_BROKER_URL, CONFIG_MQTT_CLIENT_ID, CONFIG_MQTT_QOS,
                  CONFIG_MQTT_RETENTION_POLICY);
 Storage storage(CONFIG_DEFAULT_MODE, CONFIG_DEFAULT_TARGET_TEMPERATURE);
+LoopManager loop_manager(CONFIG_TEMPERATURE_CHECK_INTERVAL_MS);
+
 TemperatureSensor temperature_sensor(CONFIG_TEMPERATURE_SENSOR_GPIO);
 Relay fridge(CONFIG_FRIDGE_RELAY_GPIO);
 Relay heater(CONFIG_HEATER_RELAY_GPIO);
@@ -95,6 +95,9 @@ extern "C" void app_main(void) {
       return;
     }
 
+    // Force run immediately to apply the changes
+    loop_manager.force_run();
+
     Mode mode = storage.get_mode();
     int target_temperature = storage.get_target_temperature();
     printf("Set target state: mode=%s, target_temperature=%d\n",
@@ -102,20 +105,8 @@ extern "C" void app_main(void) {
   });
 
   OperatingState operating_state = OperatingState::IDLE;
-  TickType_t last_check = 0;
   while (true) {
-    TickType_t now = xTaskGetTickCount();
-    Mode mode = storage.get_mode();
-
-    if (mode == Mode::OFF) {
-      fridge.off();
-      heater.off();
-      operating_state = OperatingState::IDLE;
-      last_check = 0;
-    } else if (now - last_check >=
-               pdMS_TO_TICKS(TEMPERATURE_CHECK_INTERVAL_MS)) {
-      last_check = now;
-
+    if (loop_manager.should_run()) {
       float threshold;
       if (operating_state == OperatingState::IDLE) {
         // If we're idling, we use a bigger threshold to avoid rapid toggling
@@ -128,14 +119,15 @@ extern "C" void app_main(void) {
 
       float current_temperature = temperature_sensor.read();
       int target_temperature = storage.get_target_temperature();
+      Mode mode = storage.get_mode();
 
       if (current_temperature > target_temperature + threshold &&
-          mode != Mode::HEAT) {
+          (mode == Mode::AUTO || mode == Mode::COOL)) {
         if (fridge.on() != ESP_OK) printf("Error turning on the fridge\n");
         if (heater.off() != ESP_OK) printf("Error turning off the heater\n");
         operating_state = OperatingState::COOLING;
       } else if (current_temperature < target_temperature - threshold &&
-                 mode != Mode::COOL) {
+                 (mode == Mode::AUTO || mode == Mode::HEAT)) {
         if (fridge.off() != ESP_OK) printf("Error turning off the fridge\n");
         if (heater.on() != ESP_OK) printf("Error turning on the heater\n");
         operating_state = OperatingState::HEATING;
@@ -145,13 +137,14 @@ extern "C" void app_main(void) {
         operating_state = OperatingState::IDLE;
       }
 
-      char message[80];
+      char message[72];
       snprintf(message, sizeof(message),
                "{\"currentTemperature\":%.2f,\"operatingState\":\"%s\"}",
                current_temperature, operating_state_to_str(operating_state));
       mqtt.publish(MQTT_CURRENT_STATE_TOPIC, message);
     }
 
+    // Minimal delay to avoid busy-waiting
     vTaskDelay(pdMS_TO_TICKS(1000));
   }
 }
