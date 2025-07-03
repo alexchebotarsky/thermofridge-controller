@@ -7,7 +7,9 @@
 #include "Relay.hpp"
 #include "Storage.hpp"
 #include "TemperatureSensor.hpp"
+#include "TimeServer.hpp"
 #include "WiFiManager.hpp"
+#include "cJSON.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "nvs_flash.h"
@@ -18,11 +20,14 @@ constexpr const char* MQTT_CURRENT_STATE_TOPIC =
     CONFIG_MQTT_CURRENT_STATE_TOPIC;
 constexpr const char* MQTT_TARGET_STATE_TOPIC = CONFIG_MQTT_TARGET_STATE_TOPIC;
 
+constexpr const char* DEVICE_ID = CONFIG_DEVICE_ID;
+
 WiFiManager wifi(CONFIG_WIFI_SSID, CONFIG_WIFI_PASSWORD);
 MQTTManager mqtt(CONFIG_MQTT_BROKER_URL, CONFIG_MQTT_CLIENT_ID, CONFIG_MQTT_QOS,
                  CONFIG_MQTT_RETENTION_POLICY);
 Storage storage(CONFIG_DEFAULT_MODE, CONFIG_DEFAULT_TARGET_TEMPERATURE);
 LoopManager loop_manager(CONFIG_TEMPERATURE_CHECK_INTERVAL_MS);
+TimeServer time_server;
 
 TemperatureSensor temperature_sensor(CONFIG_TEMPERATURE_SENSOR_GPIO);
 Relay fridge(CONFIG_FRIDGE_RELAY_GPIO);
@@ -72,6 +77,14 @@ extern "C" void app_main(void) {
   }
 
   wifi.on_connect([]() {
+    esp_err_t err = time_server.init();
+    if (err != ESP_OK) {
+      printf("Error initializing time server: %s\n", esp_err_to_name(err));
+      esp_restart();
+    }
+  });
+
+  wifi.on_connect([]() {
     esp_err_t err = mqtt.start();
     if (err != ESP_OK) {
       printf("Error starting MQTT client: %s\n", esp_err_to_name(err));
@@ -88,6 +101,21 @@ extern "C" void app_main(void) {
   });
 
   mqtt.subscribe(MQTT_TARGET_STATE_TOPIC, [](const char* message) {
+    // Ignore invalid messages
+    cJSON* root = cJSON_Parse(message);
+    if (!root) {
+      return;
+    }
+
+    // Ignore message that don't have deviceId or it doesn't match this device
+    cJSON* device_id_item = cJSON_GetObjectItem(root, "deviceId");
+    if (!cJSON_IsString(device_id_item) ||
+        strcmp(device_id_item->valuestring, DEVICE_ID) != 0) {
+      cJSON_Delete(root);
+      return;
+    }
+    cJSON_Delete(root);
+
     esp_err_t err = storage.populate_from_json(message);
     if (err != ESP_OK) {
       printf("Error populating storage from JSON message '%s': %s\n", message,
@@ -137,10 +165,12 @@ extern "C" void app_main(void) {
         operating_state = OperatingState::IDLE;
       }
 
-      char message[72];
+      char message[256];
       snprintf(message, sizeof(message),
-               "{\"currentTemperature\":%.2f,\"operatingState\":\"%s\"}",
-               current_temperature, operating_state_to_str(operating_state));
+               "{\"deviceId\":\"%s\",\"operatingState\":\"%s\","
+               "\"currentTemperature\":%.2f,\"timestamp\":\"%s\"}",
+               DEVICE_ID, operating_state_to_str(operating_state),
+               current_temperature, time_server.timestamp());
       mqtt.publish(MQTT_CURRENT_STATE_TOPIC, message);
     }
 
