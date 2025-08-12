@@ -9,6 +9,7 @@ class TemperatureSensor {
  public:
   TemperatureSensor(const int gpio_pin);
   esp_err_t init();
+
   float read();
 
  private:

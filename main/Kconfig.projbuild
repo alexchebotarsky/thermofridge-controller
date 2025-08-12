@@ -39,13 +39,13 @@ config MQTT_RETENTION_POLICY
 
 config MQTT_CURRENT_STATE_TOPIC
     string "MQTT Current State Topic"
-    default "thermofridge/current-state"
+    default "thermostat/current-state"
     help
         MQTT topic to publish current state to.
 
 config MQTT_TARGET_STATE_TOPIC
     string "MQTT Target State Topic"
-    default "thermofridge/set/target-state"
+    default "thermostat/set/target-state"
     help
         MQTT topic to subscribe to and listen for target state changes.
 
