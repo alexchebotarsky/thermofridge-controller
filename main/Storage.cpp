@@ -102,28 +102,22 @@ esp_err_t Storage::populate_from_json(const char* json_str) {
   }
 
   cJSON* mode_item = cJSON_GetObjectItem(root, MODE_JSON_KEY);
-  if (!cJSON_IsString(mode_item)) {
-    cJSON_Delete(root);
-    return ESP_ERR_INVALID_ARG;
-  }
-
-  esp_err_t err = set_mode(str_to_mode(mode_item->valuestring));
-  if (err != ESP_OK) {
-    cJSON_Delete(root);
-    return err;
+  if (cJSON_IsString(mode_item)) {
+    esp_err_t err = set_mode(str_to_mode(mode_item->valuestring));
+    if (err != ESP_OK) {
+      cJSON_Delete(root);
+      return err;
+    }
   }
 
   cJSON* target_temp_item =
       cJSON_GetObjectItem(root, TARGET_TEMPERATURE_JSON_KEY);
-  if (!cJSON_IsNumber(target_temp_item)) {
-    cJSON_Delete(root);
-    return ESP_ERR_INVALID_ARG;
-  }
-
-  err = set_target_temperature(target_temp_item->valueint);
-  if (err != ESP_OK) {
-    cJSON_Delete(root);
-    return err;
+  if (cJSON_IsNumber(target_temp_item)) {
+    esp_err_t err = set_target_temperature(target_temp_item->valueint);
+    if (err != ESP_OK) {
+      cJSON_Delete(root);
+      return err;
+    }
   }
 
   cJSON_Delete(root);
