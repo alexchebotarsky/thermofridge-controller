@@ -7,8 +7,6 @@
 
 constexpr const char* NVS_NAMESPACE = "thermofridge";
 
-constexpr const char* DEVICE_ID_JSON_KEY = "deviceId";
-
 constexpr const char* MODE_NVS_KEY = "mode";
 constexpr const char* MODE_JSON_KEY = "mode";
 
