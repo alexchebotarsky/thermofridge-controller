@@ -165,7 +165,7 @@ extern "C" void app_main(void) {
         operating_state = OperatingState::IDLE;
       }
 
-      char message[256];
+      char message[143];
       snprintf(message, sizeof(message),
                "{\"deviceId\":\"%s\",\"operatingState\":\"%s\","
                "\"currentTemperature\":%.2f,\"timestamp\":\"%s\"}",
