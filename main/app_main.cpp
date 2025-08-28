@@ -135,26 +135,29 @@ extern "C" void app_main(void) {
   OperatingState operating_state = OperatingState::IDLE;
   while (true) {
     if (loop_manager.should_run()) {
-      float threshold;
-      if (operating_state == OperatingState::IDLE) {
-        // If we're idling, we use a bigger threshold to avoid rapid toggling
-        threshold = 0.5;
-      } else {
-        // If we're heating or cooling, we want to reach the target temperature
-        // as close as possible, so we use a smaller threshold
-        threshold = 0.1;
+      float cooling_threshold = 0.25;
+      float heating_threshold = 0.25;
+
+      // When reaching the target, remove threshold to allow precise control
+      switch (operating_state) {
+        case OperatingState::COOLING:
+          cooling_threshold = 0;
+          break;
+        case OperatingState::HEATING:
+          heating_threshold = 0;
+          break;
       }
 
       float current_temperature = temperature_sensor.read();
       int target_temperature = storage.get_target_temperature();
       Mode mode = storage.get_mode();
 
-      if (current_temperature > target_temperature + threshold &&
+      if (current_temperature > target_temperature + cooling_threshold &&
           (mode == Mode::AUTO || mode == Mode::COOL)) {
         if (fridge.on() != ESP_OK) printf("Error turning on the fridge\n");
         if (heater.off() != ESP_OK) printf("Error turning off the heater\n");
         operating_state = OperatingState::COOLING;
-      } else if (current_temperature < target_temperature - threshold &&
+      } else if (current_temperature < target_temperature - heating_threshold &&
                  (mode == Mode::AUTO || mode == Mode::HEAT)) {
         if (fridge.off() != ESP_OK) printf("Error turning off the fridge\n");
         if (heater.on() != ESP_OK) printf("Error turning on the heater\n");
