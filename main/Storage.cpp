@@ -19,7 +19,7 @@ Storage::Storage(const char* default_mode, const int default_target_temperature)
 
 esp_err_t Storage::init() {
   nvs_handle_t nvs_storage;
-  esp_err_t err = nvs_open(NVS_NAMESPACE, NVS_READONLY, &nvs_storage);
+  esp_err_t err = nvs_open(NVS_NAMESPACE, NVS_READWRITE, &nvs_storage);
   if (err != ESP_OK) {
     return err;
   }
