@@ -146,6 +146,8 @@ extern "C" void app_main(void) {
         case OperatingState::HEATING:
           heating_threshold = 0;
           break;
+        case OperatingState::IDLE:
+          break;
       }
 
       float current_temperature = temperature_sensor.read();
