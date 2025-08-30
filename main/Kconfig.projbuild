@@ -2,7 +2,7 @@ menu "Environment Variables"
 
 config DEVICE_ID
     string "Device ID"
-    default ""
+    default "thermofridge-controller"
 
 config WIFI_SSID
     string "WiFi SSID"
@@ -15,10 +15,6 @@ config WIFI_PASSWORD
 config MQTT_BROKER_URL
     string "MQTT Broker URL"
     default "mqtt://localhost"
-
-config MQTT_CLIENT_ID
-    string "MQTT Client ID"
-    default "thermofridge-controller"
 
 config MQTT_QOS
     int "MQTT Quality of Service (QoS)"
