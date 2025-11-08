@@ -138,13 +138,13 @@ extern "C" void app_main(void) {
       float cooling_threshold = 0.25;
       float heating_threshold = 0.25;
 
-      // When reaching the target, remove threshold to allow precise control
+      // When reaching the target, use smaller threshold for precise control
       switch (operating_state) {
         case OperatingState::COOLING:
-          cooling_threshold = 0;
+          cooling_threshold = 0.1;
           break;
         case OperatingState::HEATING:
-          heating_threshold = 0;
+          heating_threshold = 0.1;
           break;
         case OperatingState::IDLE:
           break;
