@@ -1,5 +1,7 @@
 #include "MQTTManager.hpp"
 
+#include <stdio.h>
+
 #include <string>
 
 MQTTManager::MQTTManager(const char* broker_uri, const char* client_id,

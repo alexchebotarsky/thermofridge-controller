@@ -1,5 +1,7 @@
 #include "Storage.hpp"
 
+#include <stdio.h>
+
 #include <cstdint>
 
 #include "cJSON.h"

@@ -104,6 +104,7 @@ extern "C" void app_main(void) {
     // Ignore invalid messages
     cJSON* root = cJSON_Parse(message);
     if (!root) {
+      printf("Error parsing message as JSON: %s\n", message);
       return;
     }
 
@@ -135,8 +136,8 @@ extern "C" void app_main(void) {
   OperatingState operating_state = OperatingState::IDLE;
   while (true) {
     if (loop_manager.should_run()) {
-      float cooling_threshold = 0.25;
-      float heating_threshold = 0.25;
+      float cooling_threshold = 0.5;
+      float heating_threshold = 0.5;
 
       // When reaching the target, use smaller threshold for precise control
       switch (operating_state) {

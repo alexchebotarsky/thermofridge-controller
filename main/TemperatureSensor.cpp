@@ -1,5 +1,7 @@
 #include "TemperatureSensor.hpp"
 
+#include <stdio.h>
+
 #include "ds18x20.h"
 
 constexpr char MAX_SENSORS = 1;
@@ -35,7 +37,7 @@ esp_err_t TemperatureSensor::init() {
 
 float TemperatureSensor::read() {
   if (sensor_addr == 0) {
-    printf("Error: TemperatureSensor address not found for gpio %d\n", gpio);
+    printf("Error: TemperatureSensor is not initialized\n", gpio);
     return 0;
   }
 

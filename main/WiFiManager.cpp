@@ -1,5 +1,7 @@
 #include "WiFiManager.hpp"
 
+#include <stdio.h>
+
 #include "esp_wifi.h"
 
 WiFiManager::WiFiManager(const char* ssid, const char* password)
